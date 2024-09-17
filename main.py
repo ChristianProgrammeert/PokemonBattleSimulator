@@ -2,7 +2,8 @@ import math
 import random
 
 from pokemon_data import get_pokemon_info, display_pokemon_info
-from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage
+from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance
+
 
 def main():
 
@@ -36,12 +37,15 @@ def main():
 
             pokemon_1 = get_pokemon_info(your_pokemon)
             pokemon_2 = get_pokemon_info(opposing_pokemon)
+            shiny_chance(pokemon_1)
+            shiny_chance(pokemon_2)
             if pokemon_1 is None:
                 print("Could not find your Pokémon")
                 break
             if pokemon_2 is None:
                 print("Could not find the opposing pokémon")
                 break
+
 
             if multiplayer:
                 nickname = input("Player 1, would you like to give your Pokémon a nickname?: ")

@@ -3,6 +3,7 @@ from types import NoneType
 import requests
 import random
 
+
 def get_pokemon_info(pokemon_name, all_moves=False):
     """Get information about a Pokémon from the PokéAPI."""
     url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
@@ -25,7 +26,8 @@ def get_pokemon_info(pokemon_name, all_moves=False):
             #"abilities": random.choices([ability["ability"]["name"] for ability in pokemon_data["abilities"]]),
             "types": [type_data["type"]["name"] for type_data in pokemon_data["types"]],
             "moves": damaging_moves,
-            "stats": {stat["stat"]["name"]: stat["base_stat"] for stat in pokemon_data["stats"]}
+            "stats": {stat["stat"]["name"]: (stat["base_stat"]+100) for stat in pokemon_data["stats"]},
+            "shiny": False
         }
         return pokemon_info
     else:

@@ -5,10 +5,16 @@ from pokemon_data import type_effectiveness_chart
 
 
 def give_nickname(pokemon, nickname):
+    """Give a Pokémon a nickname"""
     if nickname.lower() != "no":
         pokemon["name"] = nickname + " (" + pokemon["name"] + ")"
     return pokemon
 
+def shiny_chance(pokemon):
+    """The chance of a Pokémon being shiny which is 1 in 4096"""
+    if random.randint(1, 4096) == 1:
+        print(f"{pokemon['name']} is shiny!")
+        pokemon["name"] = pokemon["name"] + " ✨"
 
 def choose_move(pokemon):
     print(f"{pokemon['name']} moves: ")
@@ -31,10 +37,12 @@ def choose_move(pokemon):
 
 
 def print_move(pokemon, move):
+    """Print the move used by the Pokémon"""
     print(f"\n{pokemon['name']} used: {move['name']}")
 
 
 def decrease_pp(pokemon, move):
+    """Decrease the PP of the move used by the Pokémon"""
     for i in range(len(pokemon["moves"])):
         if move["name"] == pokemon["moves"][i]["name"]:
             pokemon["moves"][i]["current_pp"] -= 1
