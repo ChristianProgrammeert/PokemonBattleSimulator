@@ -11,24 +11,33 @@ def get_pokemon_info(pokemon_name, all_moves=False):
 
     if response.status_code == 200:
         pokemon_data = response.json()
-        damaging_moves = []
+        moves = []
         #Get only damaging moves (physical or special)
-        for move in pokemon_data["moves"]:
-            move_info = get_damaging_moves(move["move"]["name"])
-            if move_info:
-                damaging_moves.extend(move_info)
         if not all_moves:
+            # Shuffle the list of moves
+            random.shuffle(pokemon_data["moves"])
             # Get 4 unique damaging moves to choose from.
-            damaging_moves = random.sample(damaging_moves, 4)
+            for move in pokemon_data["moves"]:
+                move_info = get_damaging_moves(move["move"]["name"])
+                if move_info:
+                    moves.extend(move_info)
+                # If we have 4 moves we can stop the loop
+                if len(moves) == 4:
+                    break
+        else:
+            moves = pokemon_data["moves"]
 
         pokemon_info = {
             "name": pokemon_data["name"].replace("-", " ").capitalize(),
-            #"abilities": random.choices([ability["ability"]["name"] for ability in pokemon_data["abilities"]]),
-            "types": [type_data["type"]["name"] for type_data in pokemon_data["types"]],
-            "moves": damaging_moves,
-            "stats": {stat["stat"]["name"]: (stat["base_stat"]+100) for stat in pokemon_data["stats"]},
+            "gender": random.choice(["♂", "♀"]),
+            "types": [type_data["type"]["name"].capitalize() for type_data in pokemon_data["types"]],
+            "moves": moves,
+            "stats": {stat["stat"]["name"]: stat["base_stat"] for stat in pokemon_data["stats"]},
             "shiny": False
         }
+        #Increase the HP stat by 110
+        #because the base HP stat is too low
+        pokemon_info["stats"]["hp"] = 2 * pokemon_info["stats"]["hp"]
         return pokemon_info
     else:
         return None
@@ -46,7 +55,7 @@ def get_damaging_moves(move_name):
                 "name": move_data["name"].replace("-", " ").capitalize(),
                 "power": move_data["power"],
                 "damage_class": move_data["damage_class"]["name"],
-                "type": move_data["type"]["name"],
+                "type": move_data["type"]["name"].capitalize(),
                 "current_pp": int(move_data["pp"]),
                 "max_pp": int(move_data["pp"])
             }
@@ -56,178 +65,73 @@ def get_damaging_moves(move_name):
 def display_pokemon_info(pokemon):
     if pokemon:
         print(f"\nName: {pokemon['name']}")
-        #print(f"Abilities: {', '.join(pokemon['abilities'])}")
         print(f"Type(s): {', '.join(pokemon['types']).capitalize()}")
         print("Available Moves:")
 
         print("Base Stats:")
         for stat_name, stat_value in pokemon["stats"].items():
-            print(f"  {stat_name}:".replace("-", " ").capitalize(),{stat_value})
+            print(f"  {stat_name}:".replace("-", " ").capitalize(),stat_value)
 
-        print("Learnable Moves:")
-        for move in pokemon["moves"].Items():
-            print(move["name"].capitalize())
+        print("\nLearnable Moves: ", end="")
+        print(", ".join([move["move"]["name"].replace("-", " ").capitalize() for move in pokemon["moves"]]))
 
     else:
         print("Pokémon not found!")
 
-
+#what offensive type is effective against what defensive type
 type_effectiveness_chart = {
-    "normal": {
-        "fighting": 2,
-        "normal": 1,
-        "ghost": 0,
-    },
-    "fire": {
-        "water": 2,
-        "rock": 2,
-        "ground": 2,
-        "fire": 0.5,
-        "grass": 2,
-        "ice": 2,
-        "bug": 2,
-        "steel": 2,
-        "fairy": 1,
-    },
-    "water": {
-        "electric": 2,
-        "grass": 2,
-        "fire": 2,
-        "water": 0.5,
-        "ice": 1,
-        "steel": 1,
-    },
-    "electric": {
-        "ground": 0,
-        "electric": 0.5,
-        "flying": 2,
-        "steel": 1,
-    },
-    "grass": {
-        "fire": 2,
-        "ice": 2,
-        "poison": 2,
-        "flying": 2,
-        "bug": 2,
-        "water": 2,
-        "electric": 0.5,
-        "grass": 0.5,
-        "ground": 2,
-    },
-    "ice": {
-        "fire": 2,
-        "fighting": 2,
-        "rock": 2,
-        "steel": 2,
-        "ice": 0.5,
-    },
-    "fighting": {
-        "flying": 2,
-        "psychic": 2,
-        "fairy": 2,
-        "bug": 0.5,
-        "rock": 2,
-        "dark": 2,
-    },
-    "poison": {
-        "ground": 2,
-        "psychic": 2,
-        "grass": 2,
-        "fighting": 0.5,
-        "poison": 0.5,
-        "bug": 1,
-        "fairy": 2,
-    },
-    "ground": {
-        "water": 2,
-        "grass": 2,
-        "ice": 2,
-        "poison": 2,
-        "rock": 2,
-        "electric": 0,
-    },
-    "flying": {
-        "electric": 2,
-        "ice": 2,
-        "rock": 2,
-        "grass": 2,
-        "fighting": 0.5,
-        "bug": 2,
-        "ground": 0,
-    },
-    "psychic": {
-        "bug": 2,
-        "ghost": 2,
-        "dark": 2,
-        "fighting": 2,
-        "psychic": 0.5,
-    },
-    "bug": {
-        "fire": 2,
-        "flying": 2,
-        "rock": 2,
-        "grass": 2,
-        "fighting": 0.5,
-        "ground": 2,
-    },
-    "rock": {
-        "water": 2,
-        "grass": 2,
-        "fighting": 2,
-        "ground": 2,
-        "steel": 2,
-        "normal": 0.5,
-        "fire": 2,
-        "poison": 0.5,
-        "flying": 2,
-    },
-    "ghost": {
-        "ghost": 2,
-        "dark": 2,
-        "poison": 0.5,
-        "bug": 1,
-        "normal": 0,
-        "fighting": 0,
-    },
-    "dragon": {
-        "ice": 2,
-        "dragon": 2,
-        "fairy": 0,
-        "fire": 1,
-        "water": 1,
-        "electric": 1,
-        "grass": 1,
-    },
-    "dark": {
-        "fighting": 2,
-        "bug": 2,
-        "fairy": 2,
-        "ghost": 2,
-        "dark": 0.5,
-        "psychic": 0,
-    },
-    "steel": {
-        "fire": 2,
-        "fighting": 2,
-        "ground": 2,
-        "normal": 0.5,
-        "grass": 0.5,
-        "ice": 2,
-        "flying": 0.5,
-        "psychic": 0.5,
-        "bug": 0.5,
-        "rock": 2,
-        "dragon": 0.5,
-        "steel": 0.5,
-        "fairy": 2,
-        "poison": 0,
-    },
-    "fairy": {
-        "poison": 2,
-        "steel": 2,
-        "fighting": 0.5,
-        "bug": 0.5,
-        "dark": 2,
-        "dragon": 0,
-    }
+    "Normal": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 1,
+               "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 0.5, "Ghost": 0, "Dragon": 1, "Dark": 1,
+               "Steel": 0.5, "Fairy": 1},
+    "Fire": {"Normal": 1, "Fire": 0.5, "Water": 0.5, "Grass": 2, "Electric": 1, "Ice": 2, "Fighting": 1, "Poison": 1,
+             "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 2, "Rock": 0.5, "Ghost": 1, "Dragon": 0.5, "Dark": 1,
+             "Steel": 2, "Fairy": 1},
+    "Water": {"Normal": 1, "Fire": 2, "Water": 0.5, "Grass": 0.5, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 1,
+              "Ground": 2, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 2, "Ghost": 1, "Dragon": 0.5, "Dark": 1,
+              "Steel": 1, "Fairy": 1},
+    "Grass": {"Normal": 1, "Fire": 0.5, "Water": 2, "Grass": 0.5, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 0.5,
+              "Ground": 2, "Flying": 0.5, "Psychic": 1, "Bug": 0.5, "Rock": 2, "Ghost": 1, "Dragon": 0.5, "Dark": 1,
+              "Steel": 0.5, "Fairy": 1},
+    "Electric": {"Normal": 1, "Fire": 1, "Water": 2, "Grass": 0.5, "Electric": 0.5, "Ice": 1, "Fighting": 1,
+                 "Poison": 1, "Ground": 0, "Flying": 2, "Psychic": 1, "Bug": 1, "Rock": 1, "Ghost": 1, "Dragon": 0.5,
+                 "Dark": 1, "Steel": 1, "Fairy": 1},
+    "Ice": {"Normal": 1, "Fire": 0.5, "Water": 0.5, "Grass": 2, "Electric": 1, "Ice": 0.5, "Fighting": 1, "Poison": 1,
+            "Ground": 2, "Flying": 2, "Psychic": 1, "Bug": 1, "Rock": 1, "Ghost": 1, "Dragon": 2, "Dark": 1,
+            "Steel": 0.5, "Fairy": 1},
+    "Fighting": {"Normal": 2, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 2, "Fighting": 1, "Poison": 0.5,
+                 "Ground": 1, "Flying": 0.5, "Psychic": 0.5, "Bug": 0.5, "Rock": 2, "Ghost": 0, "Dragon": 1, "Dark": 2,
+                 "Steel": 2, "Fairy": 0.5},
+    "Poison": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 2, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 0.5,
+               "Ground": 0.5, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 0.5, "Ghost": 0.5, "Dragon": 1, "Dark": 1,
+               "Steel": 0, "Fairy": 2},
+    "Ground": {"Normal": 1, "Fire": 2, "Water": 1, "Grass": 0.5, "Electric": 2, "Ice": 1, "Fighting": 1, "Poison": 2,
+               "Ground": 1, "Flying": 0, "Psychic": 1, "Bug": 0.5, "Rock": 2, "Ghost": 1, "Dragon": 1, "Dark": 1,
+               "Steel": 2, "Fairy": 1},
+    "Flying": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 2, "Electric": 0.5, "Ice": 1, "Fighting": 2, "Poison": 1,
+               "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 2, "Rock": 0.5, "Ghost": 1, "Dragon": 1, "Dark": 1,
+               "Steel": 0.5, "Fairy": 1},
+    "Psychic": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 2, "Poison": 2,
+                "Ground": 1, "Flying": 1, "Psychic": 0.5, "Bug": 1, "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 0,
+                "Steel": 0.5, "Fairy": 1},
+    "Bug": {"Normal": 1, "Fire": 0.5, "Water": 1, "Grass": 2, "Electric": 1, "Ice": 1, "Fighting": 0.5, "Poison": 0.5,
+            "Ground": 1, "Flying": 0.5, "Psychic": 2, "Bug": 1, "Rock": 1, "Ghost": 0.5, "Dragon": 1, "Dark": 2,
+            "Steel": 0.5, "Fairy": 0.5},
+    "Rock": {"Normal": 1, "Fire": 2, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 2, "Fighting": 0.5, "Poison": 1,
+             "Ground": 0.5, "Flying": 2, "Psychic": 1, "Bug": 2, "Rock": 1, "Ghost": 1, "Dragon": 1, "Dark": 1,
+             "Steel": 0.5, "Fairy": 1},
+    "Ghost": {"Normal": 0, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 1,
+              "Ground": 1, "Flying": 1, "Psychic": 2, "Bug": 1, "Rock": 1, "Ghost": 2, "Dragon": 1, "Dark": 0.5,
+              "Steel": 1, "Fairy": 1},
+    "Dragon": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 1, "Poison": 1,
+               "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 1, "Ghost": 1, "Dragon": 2, "Dark": 1,
+               "Steel": 0.5, "Fairy": 0},
+    "Dark": {"Normal": 1, "Fire": 1, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 0.5, "Poison": 1,
+             "Ground": 1, "Flying": 1, "Psychic": 2, "Bug": 1, "Rock": 1, "Ghost": 2, "Dragon": 1, "Dark": 0.5,
+             "Steel": 1, "Fairy": 0.5},
+    "Steel": {"Normal": 1, "Fire": 0.5, "Water": 0.5, "Grass": 1, "Electric": 0.5, "Ice": 2, "Fighting": 1, "Poison": 1,
+              "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 2, "Ghost": 1, "Dragon": 1, "Dark": 1,
+              "Steel": 0.5, "Fairy": 2},
+    "Fairy": {"Normal": 1, "Fire": 0.5, "Water": 1, "Grass": 1, "Electric": 1, "Ice": 1, "Fighting": 2, "Poison": 0.5,
+              "Ground": 1, "Flying": 1, "Psychic": 1, "Bug": 1, "Rock": 1, "Ghost": 1, "Dragon": 2, "Dark": 2,
+              "Steel": 0.5, "Fairy": 1}
 }

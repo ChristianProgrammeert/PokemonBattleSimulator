@@ -1,33 +1,44 @@
 import math
 import random
 
-from pokemon_data import get_pokemon_info, display_pokemon_info
-from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance
+from pokemon_data import get_pokemon_info, display_pokemon_info, type_effectiveness_chart
+from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex
 
+# todo: implement pokédex entries
+
+# todo: Add doc strings to the functions
+
+#todo: Comments where needed
+
+#todo: change pokemon_1 and pokemon_2's names to more fitting ones
+
+#todo: attacks are too strong, decrease the damage done by the attacks
 
 def main():
-
-
     print("Welcome to the Pokémon Battle Simulator!")
     while True:
-        choice = input("Do you want to \n1. Start a Pokémon battle \n2. Add Pokémon to your Pokédex \n3. Check Type Effectiveness \n4. Exit\nChoice-number: ")
+        choice = input("Do you want to: \n1. Start a Pokémon battle \n2. Add Pokémon to your Pokédex \n3. Check Type Effectiveness \n4. Exit\nChoice-number: ")
         if choice == "1":
-
-            #todo: implement file to open last searched pokemon in pokedex
-            #with open(filepath) as file:
-            #file = open(filepath, "r")
-            #    last_searched = file.read()
-            #file.write(pokemon_name\n)
-            #or
-            #file.append(pokemon_name\n)
-
-            #try and except for fout afhandelingen
-            #Value errors voor keuzes
             multiplayer = False
 
             game_mode = input("Do you want to play singleplayer or multiplayer: ")
             if game_mode.lower() == "multiplayer":
                 multiplayer = True
+
+            # if pokedex is not empty ask the user to choose a pokemon from the pokedex
+            try:
+                with open("pokedex.txt", "r") as file:
+                    pokedex = [line.strip() for line in file.readlines()]
+            except FileNotFoundError:
+                pokedex = []
+
+            if pokedex:
+                print("Pokémon in your pokédex:", end=" ")
+                for pokemon in pokedex:
+                    # print a list of pokemon which is comma seperated except for the final one
+                    print(f"{pokemon}", end=", " if pokemon != pokedex[-1] else "\n")
+                print("You can choose a Pokémon from your Pokédex or  one yourself.")
+            # Prompt the user to choose a Pokémon from the Pokédex or choose one themselves
             if multiplayer:
                 your_pokemon = input("Player 1, enter your Pokémon's name: ")
                 opposing_pokemon = input("Player 2, enter your Pokémon's name: ")
@@ -40,11 +51,11 @@ def main():
             shiny_chance(pokemon_1)
             shiny_chance(pokemon_2)
             if pokemon_1 is None:
-                print("Could not find your Pokémon")
-                break
+                print("Could not find your Pokémon\n")
+                continue
             if pokemon_2 is None:
-                print("Could not find the opposing pokémon")
-                break
+                print("Could not find the opposing pokémon\n")
+                continue
 
 
             if multiplayer:
@@ -57,15 +68,15 @@ def main():
             pokemon_1 = give_nickname(pokemon_1, nickname)
 
             # The battle is active while 1 of the 2 Pokémon has not fainted yet (hp > 0)
-            print(f"{pokemon_1['name']} vs. {pokemon_2['name']}")
+            print(f"{pokemon_1['name']} {pokemon_1['gender']} vs. {pokemon_2['name']} {pokemon_2['gender']}")
             print("Let the battle begin!")
             while (pokemon_1["stats"]["hp"] > 0) and (pokemon_2["stats"]["hp"] > 0):
                 print(
-                    f"\n{pokemon_1["name"]} current HP: {pokemon_1["stats"]["hp"]} & {pokemon_2["name"]} current HP: {pokemon_2["stats"]["hp"]}")
-                # Choosing of moves (you pick a move and the opponent gets a random moves selected from their 4 moves)
-
+                    f"\n{pokemon_1["name"]} {pokemon_1['gender']} current HP: {pokemon_1["stats"]["hp"]} & {pokemon_2["name"]} {pokemon_2['gender']} current HP: {pokemon_2["stats"]["hp"]}")
+                # Choose a move for each Pokémon
                 move_1 = choose_move(pokemon_1)
-
+                # If multiplayer is True, the second player chooses a move
+                # Otherwise, a random move is chosen
                 if multiplayer:
                     move_2 = choose_move(pokemon_2)
                 else:
@@ -103,24 +114,44 @@ def main():
 
             if pokemon_1["stats"]["hp"] <= 0:
                 print(f"{pokemon_1["name"]} has fainted! {pokemon_2["name"]} wins!")
-                print(f"Remaining HP: {pokemon_2["name"]}: {pokemon_2["stats"]["hp"]}")
+                break
             else:
                 print(f"{pokemon_2["name"]} has fainted! {pokemon_1["name"]} wins!")
-                print(f"Remaining HP: {pokemon_1["name"]}: {pokemon_1["stats"]["hp"]}")
+                break
         elif choice == "2":
             pokemon_name = input("Welcome to the pokédex where you can see types, moves & stats every Pokémon: \nEnter the name of the Pokémon you want to see: ")
             pokemon = get_pokemon_info(pokemon_name, True)
             if pokemon:
                 display_pokemon_info(pokemon)
+                choice = input(f"Do you wanna add {pokemon['name']} to your pokedex? (y/n): ")
+                if choice.lower() == "y":
+                    add_to_pokedex(pokemon)
+                else:
+                    print(f"{pokemon['name']} is not added to your pokedex")
             else:
                 print(f"Could not find information about {pokemon_name}")
+
         elif choice == "3":
             #Pokemon type effectiveness checker
-            type_1 = input("Enter the type: ")
+            pokemon_type = input("Enter the pokemon_type: ")
+            #capitalize the first letter of the pokemon type
+            pokemon_type = pokemon_type.capitalize()
+            if pokemon_type not in type_effectiveness_chart.keys():
+                print(f"{pokemon_type} is not a valid Pokémon type\n")
+                continue
+            #show all types which this type is effective against
+            for key, value in type_effectiveness_chart.items():
+                if pokemon_type in value and value[pokemon_type] == 2:
+                    print(f"{key} is super-effective against {pokemon_type}")
+                elif pokemon_type in value and value[pokemon_type] == 0.5:
+                    print(f"{key} is not very effective against {pokemon_type}")
+                elif pokemon_type in value and value[pokemon_type] == 0:
+                    print(f"{key} has no effect against {pokemon_type}")
+            print("\n")
         elif choice == "4":
             break
         else:
-            print("Invalid choice, please try again")
+            print("Invalid choice, please try again\n")
 
 
 

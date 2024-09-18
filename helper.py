@@ -17,11 +17,11 @@ def shiny_chance(pokemon):
         pokemon["name"] = pokemon["name"] + " ✨"
 
 def choose_move(pokemon):
-    print(f"{pokemon['name']} moves: ")
+    print(f"{pokemon['name']} {pokemon['gender']} moves: ")
     for i in range(len(pokemon["moves"])):
         print(
             f"|{i + 1}. {pokemon['moves'][i]['name']}/{pokemon['moves'][i]['damage_class']} {pokemon['moves'][i]['type']} type move [{pokemon['moves'][i]['power']} damage] [{pokemon['moves'][i]['current_pp']}/{pokemon['moves'][i]['max_pp']} pp]| ")
-    move = input(f"Choose a move for {pokemon['name']}: ")
+    move = input(f"Choose a move for {pokemon['name']} {pokemon['gender']}: ")
     # I've chosen switch case here to because there are 4 moves and every case more than three you don't want to use if else
     switcher = {
         "1": pokemon["moves"][0],
@@ -48,6 +48,30 @@ def decrease_pp(pokemon, move):
             pokemon["moves"][i]["current_pp"] -= 1
     return pokemon
 
+def add_to_pokedex(pokemon):
+    # Read the pokedex file
+    # First time this will not find a pokedex file because it has not been created yet
+    #in this case the pokedex will be an empty list to iterate through
+    try:
+        with open("pokedex.txt", "r") as file:
+            #remove the newline character from the file
+            #this is so the pokemon name can be compared to the pokemon in the pokedex correctly
+            pokedex = [line.strip() for line in file.readlines()]
+    except FileNotFoundError:
+        pokedex = []
+
+    #Check if the pokemon is already in the pokedex
+    #if this is not the case create a pokedex file if this has not been created yet and add the pokemon
+    if pokemon['name'] in pokedex:
+        print(f"{pokemon['name']} is already in your pokedex")
+    else:
+        try:
+            with open("pokedex.txt", "a") as file:
+                file.write(f"{pokemon['name']}\n")
+                print(f"{pokemon['name']} is added to your pokédex\n")
+        except IOError as e:
+            print(f"Er is een fout opgetreden bij het opslaan van {pokemon['name']} in de pokedex: {e}\n")
+
 
 def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
     """Pokémon's way of damage calculation based on several factors"""
@@ -68,14 +92,13 @@ def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
     message = ""
     # initialize STAB to 1
     stab = 1
-    # if the move's type is the same as the attacking Pokémon's type, STAB is 1.5
+    # if the move's type is the same as the attacking Pokémon's type(s), STAB is 1.5
     for pokemon_type in attacking_pokemon["types"]:
         if pokemon_type == move_1["type"]:
             stab = 1.5
             break
 
-    # initialize random number between 0.85 and 1
-    #is realized as a multiplication by a random integer between 217 and to 255, divided by 255. If the calculated damage thus far is 1, random is always 1.
+    #A random integer between 217 and to 255, divided by 255.
     random_number = random.randint(217, 255) / 255
     # get the type effectiveness of the move against the Pokémon
     # 2 is super effective, 0.5 is not very effective, 0 is no effect
@@ -124,7 +147,7 @@ def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
     if damage == 1:
         random_number = 1
 
-    total_damage = damage * type_1_effectiveness * type_2_effectiveness * random_number
+    total_damage = damage * type_1_effectiveness * type_2_effectiveness * random_number / 2
 
     print(f"Damage: {damage}")
     print(f"Modifier: {total_damage}")
@@ -168,6 +191,6 @@ def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
         else:
             message = "It deals regular damage!"
 
-    total_damage = int(math.ceil(total_damage / 10.0) * 10)
+    total_damage = int(math.floor(total_damage / 10.0) * 10)
     print(f"Total Damage: {total_damage}")
     return total_damage, message
