@@ -1,8 +1,15 @@
 import math
+import os
 import random
+from os.path import split
 
-from pokemon_data import type_effectiveness_chart
+from openai import OpenAI
+from dotenv import load_dotenv
+from pydantic import BaseModel
 
+from type_chart import type_effectiveness_chart
+
+load_dotenv()
 
 def give_nickname(pokemon, nickname):
     """Give a Pokémon a nickname"""
@@ -47,6 +54,27 @@ def decrease_pp(pokemon, move):
         if move["name"] == pokemon["moves"][i]["name"]:
             pokemon["moves"][i]["current_pp"] -= 1
     return pokemon
+
+
+class Pokedex_Entry(BaseModel):
+    pokedex_entry: str
+
+def generate_pokedex_info(pokemon_name):
+    """Generate a string with information about a Pokémon"""
+    API_KEY = os.getenv("API_KEY")
+    client = OpenAI(api_key=API_KEY)
+
+    completion = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "Return only the pokedex entry"},
+            {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + "and if the Pokémon has a regional form, specify which form it is and if the pokemon has evolutions list the evolutions as well."},
+        ],
+    )
+    # Get the pokedex entry from the completion and replace the period with a period and a newline for better formatting.
+    pokedex_entry = completion.choices[0].message.content.replace(". ", ".\n")
+
+    return pokedex_entry
 
 def add_to_pokedex(pokemon):
     # Read the pokedex file
@@ -191,6 +219,11 @@ def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
         else:
             message = "It deals regular damage!"
 
-    total_damage = int(math.floor(total_damage / 10.0) * 10)
+    # Apply a scaling factor based on the opponent's current HP
+    current_hp = defending_pokemon["stats"]["hp"]
+    max_hp = defending_pokemon["max_hp"]
+    hp_scaling_factor = current_hp / max_hp
+    total_damage = round(total_damage * hp_scaling_factor / 10.0) * 10
+    # total_damage = int(math.floor(total_damage / 10.0) * 10)
     print(f"Total Damage: {total_damage}")
     return total_damage, message

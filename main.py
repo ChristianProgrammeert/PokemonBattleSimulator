@@ -1,8 +1,10 @@
 import math
 import random
 
-from pokemon_data import get_pokemon_info, display_pokemon_info, type_effectiveness_chart
+from pokemon_data import get_pokemon_info, display_pokemon_info
 from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex
+from type_chart import type_effectiveness_chart
+
 
 # todo: implement pokédex entries
 
@@ -149,6 +151,8 @@ def main():
                     print(f"{key} has no effect against {pokemon_type}")
             print("\n")
         elif choice == "4":
+            #exit with a pokemon greeting
+            print("Thank you for playing the Pokémon Battle Simulator! Gotta catch 'em all!")
             break
         else:
             print("Invalid choice, please try again\n")
