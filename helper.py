@@ -85,7 +85,10 @@ def get_pokedex():
             #this is so the pokemon name can be compared to the pokemon in the pokedex correctly
             pokedex = [line.strip() for line in file.readlines()]
     except FileNotFoundError:
+        #return empty list if the file is empty (so you can still iterate through it)
         return pokedex
+    #return the pokedex list
+    return pokedex
 
 def add_to_pokedex(pokemon):
     """Add a Pokémon to the user's Pokédex (text file)"""
