@@ -1,127 +1,113 @@
-import math
 import random
 
-from pokemon_data import get_pokemon_info, display_pokemon_info
-from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex
+from pokemon_data import get_pokemon_info
+from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex, \
+    display_pokemon_info, check_pokedex
 from type_chart import type_effectiveness_chart
-
-
-# todo: implement pokédex entries
-
-# todo: Add doc strings to the functions
 
 #todo: Comments where needed
 
-#todo: change pokemon_1 and pokemon_2's names to more fitting ones
+#todo: speed of the pokemon to see which pokemon attacks first (calculate damage)
 
 #todo: attacks are too strong, decrease the damage done by the attacks
+
+#todo: calculate_damage function needs to be separated into smaller functions that serve 1 purpose
 
 def main():
     print("Welcome to the Pokémon Battle Simulator!")
     while True:
-        choice = input("Do you want to: \n1. Start a Pokémon battle \n2. Add Pokémon to your Pokédex \n3. Check Type Effectiveness \n4. Exit\nChoice-number: ")
+        choice = input(
+            "Do you want to: \n1. Start a Pokémon battle \n2. Add Pokémon to your Pokédex \n3. Check Type Effectiveness \n4. Exit\nChoice-number: ")
         if choice == "1":
             multiplayer = False
+            pokemon = []
+            nicknames = []
 
-            game_mode = input("Do you want to play singleplayer or multiplayer: ")
-            if game_mode.lower() == "multiplayer":
+            game_mode = input("Do you want to play: 1. singleplayer or 2. multiplayer:\nChoice-number:  ")
+            if game_mode == "2":
                 multiplayer = True
 
-            # if pokedex is not empty ask the user to choose a pokemon from the pokedex
-            try:
-                with open("pokedex.txt", "r") as file:
-                    pokedex = [line.strip() for line in file.readlines()]
-            except FileNotFoundError:
-                pokedex = []
+            check_pokedex()
 
-            if pokedex:
-                print("Pokémon in your pokédex:", end=" ")
-                for pokemon in pokedex:
-                    # print a list of pokemon which is comma seperated except for the final one
-                    print(f"{pokemon}", end=", " if pokemon != pokedex[-1] else "\n")
-                print("You can choose a Pokémon from your Pokédex or  one yourself.")
-            # Prompt the user to choose a Pokémon from the Pokédex or choose one themselves
-            if multiplayer:
-                your_pokemon = input("Player 1, enter your Pokémon's name: ")
-                opposing_pokemon = input("Player 2, enter your Pokémon's name: ")
-            else:
-                your_pokemon = input("Enter your Pokémon's name: ")
-                opposing_pokemon = input("Enter the opposing Pokémon's name: ")
-
-            pokemon_1 = get_pokemon_info(your_pokemon)
-            pokemon_2 = get_pokemon_info(opposing_pokemon)
-            shiny_chance(pokemon_1)
-            shiny_chance(pokemon_2)
-            if pokemon_1 is None:
-                print("Could not find your Pokémon\n")
-                continue
-            if pokemon_2 is None:
-                print("Could not find the opposing pokémon\n")
-                continue
-
-
-            if multiplayer:
-                nickname = input("Player 1, would you like to give your Pokémon a nickname?: ")
-                nickname_2 = input("Player 2, would you like to give your Pokémon a nickname?: ")
-                pokemon_2 = give_nickname(pokemon_2, nickname_2)
-            else:
-                nickname = input("Would you like to give your Pokémon a nickname?: ")
-
-            pokemon_1 = give_nickname(pokemon_1, nickname)
+            for i in range(2):
+                #Change the input message based on the game mode
+                if multiplayer:
+                    name = input(f"Player {i + 1}, enter your Pokémon's name: ")
+                    # Ask the players if they want to give their Pokémon a nickname
+                    nicknames.append(input(f"Player {i + 1}, would you like to give your Pokémon a nickname?: "))
+                else:
+                    name = input("Enter Pokémon's name: ")
+                    #give only your Pokémon a nickname
+                    if i == 0:
+                        nicknames.append(input(f"Would you like to give {name} a nickname?: "))
+                #Get the Pokémon information from the PokéAPI
+                pokemon.append(get_pokemon_info(name))
+                shiny_chance(pokemon[i])
+                if pokemon[i] is None:
+                    print(f"Could not find {name}")
+                    break
+                #If the index is 0 and the length of the nicknames list is 1, give the nickname to the first P
+                if i == 0 and len(nicknames) == 1:
+                    #give the first Pokémon a nickname, because the other pokemon is not user controlled.
+                    pokemon[i] = give_nickname(pokemon[i], nicknames[0])
+                else:
+                    #give all Pokémon a nickname
+                    pokemon[i] = give_nickname(pokemon[i], nicknames[i])
 
             # The battle is active while 1 of the 2 Pokémon has not fainted yet (hp > 0)
-            print(f"{pokemon_1['name']} {pokemon_1['gender']} vs. {pokemon_2['name']} {pokemon_2['gender']}")
+            #The pokemon battle is not created dynamically, it is hardcoded to be 2 players
+            print(f"{pokemon[0]['name']} {pokemon[0]['gender']} vs. {pokemon[1]['name']} {pokemon[1]['gender']}")
             print("Let the battle begin!")
-            while (pokemon_1["stats"]["hp"] > 0) and (pokemon_2["stats"]["hp"] > 0):
+            while (pokemon[0]["stats"]["hp"] > 0) and (pokemon[0]["stats"]["hp"] > 0):
                 print(
-                    f"\n{pokemon_1["name"]} {pokemon_1['gender']} current HP: {pokemon_1["stats"]["hp"]} & {pokemon_2["name"]} {pokemon_2['gender']} current HP: {pokemon_2["stats"]["hp"]}")
+                    f"\n{pokemon[0]["name"]} {pokemon[0]['gender']} current HP: {pokemon[1]["stats"]["hp"]} & {pokemon[1]["name"]} {pokemon[1]['gender']} current HP: {pokemon[1]["stats"]["hp"]}")
                 # Choose a move for each Pokémon
-                move_1 = choose_move(pokemon_1)
+                move_1 = choose_move(pokemon[0])
                 # If multiplayer is True, the second player chooses a move
                 # Otherwise, a random move is chosen
                 if multiplayer:
-                    move_2 = choose_move(pokemon_2)
+                    move_2 = choose_move(pokemon[1])
                 else:
-                    move_2 = random.choice(pokemon_2["moves"])
-
-
+                    move_2 = random.choice(pokemon[1]["moves"])
 
                 # Question 1: How much damage is done?
                 # The damage is calculated based on the move used and the defending Pokémon's stats and several other factors.
-                damage_1, message_1 = calculate_damage(pokemon_1, move_1, pokemon_2)
-                damage_2, message_2 = calculate_damage(pokemon_2, move_2, pokemon_1)
+                damage_1, message_1 = calculate_damage(pokemon[0], move_1, pokemon[1])
+                damage_2, message_2 = calculate_damage(pokemon[1], move_2, pokemon[0])
 
                 # Question 2: How much HP is left?
                 # The HP of the defending Pokémon is decreased by the damage done by the attacking Pokémon
-                pokemon_1["stats"]["hp"] -= damage_2
-                pokemon_2["stats"]["hp"] -= damage_1
+                pokemon[0]["stats"]["hp"] -= damage_2
+                pokemon[1]["stats"]["hp"] -= damage_1
 
                 # Question 3: What happens to the PP of the move used?
                 # decrease the pp of the moves used.
-                pokemon_1 = decrease_pp(pokemon_1, move_1)
-                pokemon_2 = decrease_pp(pokemon_2, move_2)
+                pokemon[0] = decrease_pp(pokemon[0], move_1)
+                pokemon[1] = decrease_pp(pokemon[1], move_2)
 
                 # Question 4: Who goes first?
                 # Based on the speed stat, the Pokémon with the higher speed stat goes first, this move is printed first
-                if pokemon_1["stats"]["speed"] > pokemon_2["stats"]["speed"]:
-                    print_move(pokemon_1, move_1)
+
+                if pokemon[0]["stats"]["speed"] > pokemon[1]["stats"]["speed"]:
+                    print_move(pokemon[0], move_1)
                     print(message_1)
-                    print_move(pokemon_2, move_2)
+                    print_move(pokemon[1], move_2)
                     print(message_2)
                 else:
-                    print_move(pokemon_2, move_2)
+                    print_move(pokemon[1], move_2)
                     print(message_2)
-                    print_move(pokemon_1, move_1)
+                    print_move(pokemon[0], move_1)
                     print(message_1)
 
-            if pokemon_1["stats"]["hp"] <= 0:
-                print(f"{pokemon_1["name"]} has fainted! {pokemon_2["name"]} wins!")
+            if pokemon[0]["stats"]["hp"] <= 0:
+                print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!")
                 break
             else:
-                print(f"{pokemon_2["name"]} has fainted! {pokemon_1["name"]} wins!")
+                print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!")
                 break
         elif choice == "2":
-            pokemon_name = input("Welcome to the pokédex where you can see types, moves & stats every Pokémon: \nEnter the name of the Pokémon you want to see: ")
+            pokemon_name = input(
+                "Welcome to the pokédex where you can see types, moves & stats every Pokémon: \nEnter the name of the Pokémon you want to see: ")
             pokemon = get_pokemon_info(pokemon_name, True)
             if pokemon:
                 display_pokemon_info(pokemon)
@@ -134,7 +120,7 @@ def main():
                 print(f"Could not find information about {pokemon_name}")
 
         elif choice == "3":
-            #Pokemon type effectiveness checker
+            #Pokémon type effectiveness checker
             pokemon_type = input("Enter the pokemon_type: ")
             #capitalize the first letter of the pokemon type
             pokemon_type = pokemon_type.capitalize()
@@ -158,16 +144,5 @@ def main():
             print("Invalid choice, please try again\n")
 
 
-
-
-
-
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-

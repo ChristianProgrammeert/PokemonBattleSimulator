@@ -1,7 +1,6 @@
 import math
 import os
 import random
-from os.path import split
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -24,6 +23,7 @@ def shiny_chance(pokemon):
         pokemon["name"] = pokemon["name"] + " ✨"
 
 def choose_move(pokemon):
+    """Choose a move for the Pokémon"""
     print(f"{pokemon['name']} {pokemon['gender']} moves: ")
     for i in range(len(pokemon["moves"])):
         print(
@@ -55,10 +55,6 @@ def decrease_pp(pokemon, move):
             pokemon["moves"][i]["current_pp"] -= 1
     return pokemon
 
-
-class Pokedex_Entry(BaseModel):
-    pokedex_entry: str
-
 def generate_pokedex_info(pokemon_name):
     """Generate a string with information about a Pokémon"""
     API_KEY = os.getenv("API_KEY")
@@ -76,18 +72,24 @@ def generate_pokedex_info(pokemon_name):
 
     return pokedex_entry
 
-def add_to_pokedex(pokemon):
+def get_pokedex():
+    """Get the user's Pokédex (text file)"""
+
     # Read the pokedex file
     # First time this will not find a pokedex file because it has not been created yet
     #in this case the pokedex will be an empty list to iterate through
+    pokedex = []
     try:
         with open("pokedex.txt", "r") as file:
             #remove the newline character from the file
             #this is so the pokemon name can be compared to the pokemon in the pokedex correctly
             pokedex = [line.strip() for line in file.readlines()]
     except FileNotFoundError:
-        pokedex = []
+        return pokedex
 
+def add_to_pokedex(pokemon):
+    """Add a Pokémon to the user's Pokédex (text file)"""
+    pokedex = get_pokedex()
     #Check if the pokemon is already in the pokedex
     #if this is not the case create a pokedex file if this has not been created yet and add the pokemon
     if pokemon['name'] in pokedex:
@@ -100,6 +102,34 @@ def add_to_pokedex(pokemon):
         except IOError as e:
             print(f"Er is een fout opgetreden bij het opslaan van {pokemon['name']} in de pokedex: {e}\n")
 
+def check_pokedex():
+    """Check if the user has a pokédex and if so, ask the user to choose a Pokémon from the pokédex"""
+    pokedex = get_pokedex()
+
+    if pokedex:
+        print("Pokémon in your pokédex:", end=" ")
+        for pokemon in pokedex:
+            # print a list of pokemon which is comma seperated except for the last one
+            print(f"{pokemon}", end=", " if pokemon != pokedex[-1] else "\n")
+            # Prompt the user to choose a Pokémon from the Pokédex or choose one themselves
+        print("You can choose a Pokémon from your Pokédex or pick one of the 1,164 Pokémon available.")
+
+def display_pokemon_info(pokemon):
+    """Display information about a Pokémon"""
+    if pokemon:
+        print(f"\nName: {pokemon['name']}")
+        print(f"Type(s): {', '.join(pokemon['types']).capitalize()}\n")
+        print(generate_pokedex_info(pokemon["name"]))
+
+        print("\nBase Stats:")
+        for stat_name, stat_value in pokemon["stats"].items():
+            print(f"  {stat_name}:".replace("-", " ").capitalize(),stat_value)
+
+        print("\nAvailable Moves: ", end="")
+        print(", ".join([move["move"]["name"].replace("-", " ").capitalize() for move in pokemon["moves"]]))
+
+    else:
+        print("Pokémon not found!")
 
 def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
     """Pokémon's way of damage calculation based on several factors"""

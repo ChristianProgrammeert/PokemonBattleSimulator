@@ -3,9 +3,6 @@ from types import NoneType
 import requests
 import random
 
-from helper import generate_pokedex_info
-
-
 def get_pokemon_info(pokemon_name, all_moves=False):
     """Get information about a Pokémon from the PokéAPI."""
     #Make a request to the PokéAPI (set all capital letters to lowercase and replace spaces with dashes to get the right formatting)
@@ -66,18 +63,3 @@ def get_damaging_moves(move_name):
             return [move_info]
     return []
 
-def display_pokemon_info(pokemon):
-    if pokemon:
-        print(f"\nName: {pokemon['name']}")
-        print(f"Type(s): {', '.join(pokemon['types']).capitalize()}\n")
-        print(generate_pokedex_info(pokemon["name"]))
-
-        print("\nBase Stats:")
-        for stat_name, stat_value in pokemon["stats"].items():
-            print(f"  {stat_name}:".replace("-", " ").capitalize(),stat_value)
-
-        print("\nAvailable Moves: ", end="")
-        print(", ".join([move["move"]["name"].replace("-", " ").capitalize() for move in pokemon["moves"]]))
-
-    else:
-        print("Pokémon not found!")
