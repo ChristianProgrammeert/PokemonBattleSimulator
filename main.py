@@ -2,16 +2,8 @@ import random
 
 from pokemon_data import get_pokemon_info
 from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex, \
-    display_pokemon_info, check_pokedex
+    display_pokemon_info, check_pokedex, perform_attack
 from type_chart import type_effectiveness_chart
-
-#todo: Comments where needed
-
-#todo: speed of the pokemon to see which pokemon attacks first (calculate damage)
-
-#todo: attacks are too strong, decrease the damage done by the attacks
-
-#todo: calculate_damage function needs to be separated into smaller functions that serve 1 purpose
 
 def main():
     print("Welcome to the Pokémon Battle Simulator!")
@@ -29,6 +21,7 @@ def main():
 
             check_pokedex()
 
+            #
             for i in range(2):
                 #Change the input message based on the game mode
                 if multiplayer:
@@ -46,11 +39,11 @@ def main():
                 if pokemon[i] is None:
                     print(f"Could not find {name}")
                     break
-                #If the index is 0 and the length of the nicknames list is 1, give the nickname to the first P
+                #If the index is 0 and the length of the nicknames list is 1, give the nickname to the first Pokémon
                 if i == 0 and len(nicknames) == 1:
                     #give the first Pokémon a nickname, because the other pokemon is not user controlled.
-                    pokemon[i] = give_nickname(pokemon[i], nicknames[0])
-                else:
+                    pokemon[0] = give_nickname(pokemon[0], nicknames[0])
+                elif len(nicknames) > 1:
                     #give all Pokémon a nickname
                     pokemon[i] = give_nickname(pokemon[i], nicknames[i])
 
@@ -58,56 +51,48 @@ def main():
             #The pokemon battle is not created dynamically, it is hardcoded to be 2 players
             print(f"{pokemon[0]['name']} {pokemon[0]['gender']} vs. {pokemon[1]['name']} {pokemon[1]['gender']}")
             print("Let the battle begin!")
-            while (pokemon[0]["stats"]["hp"] > 0) and (pokemon[0]["stats"]["hp"] > 0):
+            while (pokemon[0]["stats"]["hp"] > 0) and (pokemon[1]["stats"]["hp"] > 0):
                 print(
-                    f"\n{pokemon[0]["name"]} {pokemon[0]['gender']} current HP: {pokemon[1]["stats"]["hp"]} & {pokemon[1]["name"]} {pokemon[1]['gender']} current HP: {pokemon[1]["stats"]["hp"]}")
+                    f"\n{pokemon[0]["name"]} {pokemon[0]['gender']} current HP: {pokemon[0]["stats"]["hp"]} & {pokemon[1]["name"]} {pokemon[1]['gender']} current HP: {pokemon[1]["stats"]["hp"]}")
                 # Choose a move for each Pokémon
-                move_1 = choose_move(pokemon[0])
-                # If multiplayer is True, the second player chooses a move
+                move_a = choose_move(pokemon[0])
+                # If the gamemode is multiplayer, the second player chooses a move
                 # Otherwise, a random move is chosen
                 if multiplayer:
-                    move_2 = choose_move(pokemon[1])
+                    move_b = choose_move(pokemon[1])
                 else:
-                    move_2 = random.choice(pokemon[1]["moves"])
+                    move_b = random.choice(pokemon[1]["moves"])
 
-                # Question 1: How much damage is done?
-                # The damage is calculated based on the move used and the defending Pokémon's stats and several other factors.
-                damage_1, message_1 = calculate_damage(pokemon[0], move_1, pokemon[1])
-                damage_2, message_2 = calculate_damage(pokemon[1], move_2, pokemon[0])
-
-                # Question 2: How much HP is left?
-                # The HP of the defending Pokémon is decreased by the damage done by the attacking Pokémon
-                pokemon[0]["stats"]["hp"] -= damage_2
-                pokemon[1]["stats"]["hp"] -= damage_1
-
-                # Question 3: What happens to the PP of the move used?
-                # decrease the pp of the moves used.
-                pokemon[0] = decrease_pp(pokemon[0], move_1)
-                pokemon[1] = decrease_pp(pokemon[1], move_2)
-
-                # Question 4: Who goes first?
+                #Who goes first?
                 # Based on the speed stat, the Pokémon with the higher speed stat goes first, this move is printed first
 
                 if pokemon[0]["stats"]["speed"] > pokemon[1]["stats"]["speed"]:
-                    print_move(pokemon[0], move_1)
-                    print(message_1)
-                    print_move(pokemon[1], move_2)
-                    print(message_2)
+                    #The first pokémon is faster so it performs a move first
+                    pokemon[0], pokemon[1] = perform_attack(pokemon[0], pokemon[1], move_a)
+                    # Check if the second Pokémon can still attack
+                    if pokemon[1]["stats"]["hp"] > 0:
+                        pokemon[1], pokemon[0] = perform_attack(pokemon[1], pokemon[0], move_b)
+                    else:
+                        #If the second Pokémon has fainted, the battle is over and the first Pokémon wins
+                        print(f"{pokemon[1]["name"]} has fainted! {pokemon[0]["name"]} wins!\n")
+                        break
                 else:
-                    print_move(pokemon[1], move_2)
-                    print(message_2)
-                    print_move(pokemon[0], move_1)
-                    print(message_1)
+                    #The second pokémon is faster so it performs a move first
+                    pokemon[1], pokemon[0] = perform_attack(pokemon[1], pokemon[0], move_b)
+                    # Check if the first Pokémon can still attack
+                    if pokemon[0]["stats"]["hp"] > 0:
+                        pokemon[0], pokemon[1] = perform_attack(pokemon[0], pokemon[1], move_a)
+                    else:
+                        #If the first Pokémon has fainted, the battle is over and the second Pokémon wins
+                        print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!\n")
+                        break
 
-            if pokemon[0]["stats"]["hp"] <= 0:
-                print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!")
-                break
-            else:
-                print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!")
-                break
         elif choice == "2":
+            #Pokedex
             pokemon_name = input(
-                "Welcome to the pokédex where you can see types, moves & stats every Pokémon: \nEnter the name of the Pokémon you want to see: ")
+                "Welcome to the pokédex where you can see types, moves, stats & evolutions of every Pokémon. "
+                "\nAfter which you can add the Pokémon to your Pokédex to use in battle! "
+                "\nEnter the name of the Pokémon you want to see: ")
             pokemon = get_pokemon_info(pokemon_name, True)
             if pokemon:
                 display_pokemon_info(pokemon)
@@ -121,21 +106,23 @@ def main():
 
         elif choice == "3":
             #Pokémon type effectiveness checker
-            pokemon_type = input("Enter the pokemon_type: ")
+            pokemon_type = input("Enter the Pokémon type: ")
             #capitalize the first letter of the pokemon type
             pokemon_type = pokemon_type.capitalize()
             if pokemon_type not in type_effectiveness_chart.keys():
                 print(f"{pokemon_type} is not a valid Pokémon type\n")
                 continue
             #show all types which this type is effective against
+            print(f"Type effectiveness of {pokemon_type} type:")
             for key, value in type_effectiveness_chart.items():
                 if pokemon_type in value and value[pokemon_type] == 2:
-                    print(f"{key} is super-effective against {pokemon_type}")
+                    print(f"    {key} type is super-effective against {pokemon_type} type")
                 elif pokemon_type in value and value[pokemon_type] == 0.5:
-                    print(f"{key} is not very effective against {pokemon_type}")
+                    print(f"    {key} type is not very effective against {pokemon_type} type")
                 elif pokemon_type in value and value[pokemon_type] == 0:
-                    print(f"{key} has no effect against {pokemon_type}")
-            print("\n")
+                    print(f"    {key} type has no effect against {pokemon_type} type")
+            #print a new line
+            print()
         elif choice == "4":
             #exit with a pokemon greeting
             print("Thank you for playing the Pokémon Battle Simulator! Gotta catch 'em all!")

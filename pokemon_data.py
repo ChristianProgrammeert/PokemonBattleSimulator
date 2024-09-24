@@ -33,7 +33,6 @@ def get_pokemon_info(pokemon_name, all_moves=False):
             "types": [type_data["type"]["name"].capitalize() for type_data in pokemon_data["types"]],
             "moves": moves,
             "stats": {stat["stat"]["name"]: stat["base_stat"] for stat in pokemon_data["stats"]},
-            "max_hp": pokemon_data["stats"][0]["base_stat"],
             "shiny": False
         }
         # #Increase the HP stat by 110

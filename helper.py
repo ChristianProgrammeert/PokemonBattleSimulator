@@ -4,11 +4,12 @@ import random
 
 from openai import OpenAI
 from dotenv import load_dotenv
-from pydantic import BaseModel
 
 from type_chart import type_effectiveness_chart
 
 load_dotenv()
+# Get the API key from the .env file
+API_KEY = os.getenv("API_KEY")
 
 def give_nickname(pokemon, nickname):
     """Give a Pokémon a nickname"""
@@ -42,7 +43,6 @@ def choose_move(pokemon):
     move = switcher.get(move, random.choice(pokemon["moves"]))
     return move
 
-
 def print_move(pokemon, move):
     """Print the move used by the Pokémon"""
     print(f"\n{pokemon['name']} used: {move['name']}")
@@ -57,7 +57,6 @@ def decrease_pp(pokemon, move):
 
 def generate_pokedex_info(pokemon_name):
     """Generate a string with information about a Pokémon"""
-    API_KEY = os.getenv("API_KEY")
     client = OpenAI(api_key=API_KEY)
 
     completion = client.chat.completions.create(
@@ -134,129 +133,169 @@ def display_pokemon_info(pokemon):
     else:
         print("Pokémon not found!")
 
-def calculate_damage(attacking_pokemon, move_1, defending_pokemon):
-    """Pokémon's way of damage calculation based on several factors"""
+def get_stab(pokemon, move):
+    """Check if the Pokémon has STAB (Same Type Attack Bonus)"""
+    for pokemon_type in pokemon["types"]:
+        if pokemon_type == move["type"]:
+            return 1.5
+    return 1
 
-    #The damage calculation is based on the following formula with the following variables:
-    # STAB = Same Type Attack Bonus
-    # Type-effectiveness = how effective the move is against the defending pokemon
-    # Random = random factor between 0.85 and 1
-    # Move-Power = the power of the move
-    # Attack = the attacking pokemon's attack (physical or special) stat
-    # Defence = the defending pokemon's defence (physical or special) stat
-    # Modifier = STAB * Type-effectiveness * Random
-    # Damage = (((2 * 100 / 5 + 2) * move_power * Attack (physical or special) / Defence(physical or special) / 50 + 2) * Modifier
-    # The damage is calculated as a float and is then rounded down to the nearest 10
-    # The damage is then subtracted from the opponent's HP
-
-    # initialize damage message
-    message = ""
-    # initialize STAB to 1
-    stab = 1
-    # if the move's type is the same as the attacking Pokémon's type(s), STAB is 1.5
-    for pokemon_type in attacking_pokemon["types"]:
-        if pokemon_type == move_1["type"]:
-            stab = 1.5
-            break
-
-    #A random integer between 217 and to 255, divided by 255.
-    random_number = random.randint(217, 255) / 255
-    # get the type effectiveness of the move against the Pokémon
+def get_type_effectiveness(move, defending_pokemon):
+    """Get the effectiveness of the move against the defending Pokémon"""
     # 2 is super effective, 0.5 is not very effective, 0 is no effect
     # default to 1 (neutral damage) if the type is not in the specific type dictionary
-
-    type_1_effectiveness = type_effectiveness_chart[move_1["type"]].get(defending_pokemon["types"][0], 1)
+    type_1_effectiveness = type_effectiveness_chart[move["type"]].get(defending_pokemon["types"][0], 1)
     # if the defending Pokémon has two types, get the effectiveness of the move against the second type
     if len(defending_pokemon["types"]) > 1:
-        type_2_effectiveness = type_effectiveness_chart[move_1["type"]].get(defending_pokemon["types"][1], 1)
+        type_2_effectiveness = type_effectiveness_chart[move["type"]].get(defending_pokemon["types"][1], 1)
     else:
-        #else, set the second type to 1
+        # If the Pokémon has no second type, set the type_2_effectiveness to 1
         type_2_effectiveness = 1
 
-    # If the move has no effect on one of the types, it deals no damage
-    if type_1_effectiveness == 0 or type_2_effectiveness == 0:
-        message = "It has no effect on the Pokémon."
-        return 0, message
+    return type_1_effectiveness, type_2_effectiveness
 
+
+def get_damage_class(attacking_pokemon, move, defending_pokemon):
+    """Get the damage class of the move"""
     # initialize attack and defence based on the move's damage class
     defense = defending_pokemon["stats"]["defense"]
-    if move_1["damage_class"] == "special":
-        defence = defending_pokemon["stats"]["special-defense"]
+    if move["damage_class"] == "special":
+        defense = defending_pokemon["stats"]["special-defense"]
     attack = attacking_pokemon["stats"]["attack"]
-    if move_1["damage_class"] == "special":
+    if move["damage_class"] == "special":
         attack = attacking_pokemon["stats"]["special-attack"]
     # If either attack or damage are greater than 255, both are divided by 4 and rounded down.
     if attack > 255 or defense > 255:
         attack = math.floor(attack / 4)
         defense = math.floor(defense / 4)
+    return attack, defense
 
-    # calculate the damage
-    print(f"STAB: {stab}")
-    print(f"Random: {random_number}")
-    print(f"Move Power: {move_1['power']}")
-    print(f"Attack: {attack}")
-    print(f"Defence: {defense}")
-    damage = ((2 * 100 / 5 + 2) * move_1["power"] * attack / defense / 50 + 2)
-    # Apply STAB if applicable
-    if stab == 1.5:
-        # STAB is recognized as an addition of the damage calculated thus far divided by 2, rounded down, then added to the damage calculated thus far.
-        stab_bonus = math.floor(damage / 2)
-        damage += stab_bonus
 
-    damage = damage * type_1_effectiveness * type_2_effectiveness
-    #Before using the random number if the calculated damage thus far is 1, random is always 1.
-    if damage == 1:
-        random_number = 1
-
-    total_damage = damage * type_1_effectiveness * type_2_effectiveness * random_number / 2
-
-    print(f"Damage: {damage}")
-    print(f"Modifier: {total_damage}")
-
-    #If the Pokémon has only one type.
+def apply_type_effectiveness(total_damage, type_1_effectiveness, type_2_effectiveness, defending_pokemon):
+    """Apply the type effectiveness to the damage and create a message based on the effectiveness"""
+    # If the Pokémon has only one type.
     if len(defending_pokemon["types"]) == 1:
-        #If the type of a move is super effective against a type of its target, the damage is doubled;
+        # If the type of a move is super effective against a type of its target, the damage is doubled;
         if type_1_effectiveness == 2:
             total_damage = math.floor(total_damage * 2)
             message = "It's super effective!"
-        #If the type of a move is not very effective against a type of its target, the damage is halved;
+        # If the type of a move is not very effective against a type of its target, the damage is halved;
         elif type_1_effectiveness == 0.5:
             total_damage = math.floor(total_damage / 2)
             message = "It's not very effective!"
-        #If the type of a move has no effect against a type of its target, the move has no effect;
+        # If the type of a move has no effect against a type of its target, the move has no effect;
         elif type_1_effectiveness == 0:
             total_damage = 0
             message = "It has no effect on the Pokémon."
-        #In every other case the move deals regular damage.
+        # In every other case the move deals regular damage.
         else:
             message = "It deals regular damage!"
-    #If the Pokémon has two types.
+    # If the Pokémon has two types.
     else:
-        #If the type of a move is super effective against both of the opponent's types (such as a Ground-type move used against a Steel/Rock Pokémon), then the move does 4 times  the damage.
+        # If the type of a move is super effective against both of the opponent's types (such as a Ground-type move used against a Steel/Rock Pokémon), then the move does 4 times  the damage.
         if type_1_effectiveness == 2 and type_2_effectiveness == 2:
             total_damage = math.floor(total_damage * 4)
             message = "It's super effective!"
-        #If the type of a move is not very effective against both of the opponent's types (such as a Fighting-type move used against a Psychic/Flying Pokémon), then the move only does 1/4 of the damage.
+        # If the type of a move is not very effective against both of the opponent's types (such as a Fighting-type move used against a Psychic/Flying Pokémon), then the move only does 1/4 of the damage.
         elif type_1_effectiveness == 0.5 and type_2_effectiveness == 0.5:
             total_damage = math.floor(total_damage / 4)
             message = "It's not very effective!"
-        #If the type of a move is super effective against one of the opponent's types but not very effective against the other (such as a Grass-type move used against a Water/Flying Pokémon), then the move deals regular damage.
+        # If the type of a move is super effective against one of the opponent's types but not very effective against the other (such as a Grass-type move used against a Water/Flying Pokémon), then the move deals regular damage.
         elif type_1_effectiveness == 2 and type_2_effectiveness == 0.5:
             total_damage = math.floor(total_damage)
             message = "It deals regular damage!"
-        #If the type of move is completely ineffective against one of the opponent's types, then the move does no damage regardless of how the Pokémon’s other type would be affected (as in an Electric-type move used against a Water/Ground Pokémon).
+        # If the type of move is completely ineffective against one of the opponent's types, then the move does no damage regardless of how the Pokémon’s other type would be affected (as in an Electric-type move used against a Water/Ground Pokémon).
         elif type_1_effectiveness == 0 or type_2_effectiveness == 0:
             total_damage = 0
             message = "It has no effect on the Pokémon."
         # In every other case the move deals regular damage.
         else:
             message = "It deals regular damage!"
-
-    # Apply a scaling factor based on the opponent's current HP
-    current_hp = defending_pokemon["stats"]["hp"]
-    max_hp = defending_pokemon["max_hp"]
-    hp_scaling_factor = current_hp / max_hp
-    total_damage = round(total_damage * hp_scaling_factor / 10.0) * 10
-    # total_damage = int(math.floor(total_damage / 10.0) * 10)
-    print(f"Total Damage: {total_damage}")
     return total_damage, message
+
+
+def calculate_damage(attacking_pokemon, move, defending_pokemon):
+    """Pokémon's way of damage calculation based on several factors"""
+
+    #The damage calculation is based on the following formula with the following variables:
+    # STAB = Same Type Attack Bonus
+    # Type-effectiveness = how effective the move is against the defending pokemon
+    # Random = random factor between 217 and 255 divided by 255
+    # Move-Power = the power of the move
+    # Attack = the attacking pokemon's attack (physical or special) stat
+    # Defence = the defending pokemon's defence (physical or special) stat
+    # Damage = (((2 * 100 / 5 + 2) * move_power * Attack (physical or special) / Defence(physical or special) / 50 + 2)
+    #Apply STAB if applicable to the damage at this point
+    #damage = damage * type_1_effectiveness * type_2_effectiveness
+    #Apply Type effectiveness to the damage based on the defending pokemon's type(s)
+    #Halve the damage to make the game more balanced
+    # The damage is calculated as a float and is then rounded down to the nearest 10
+
+    # initialize STAB to 1
+    stab = get_stab(attacking_pokemon, move)
+
+    #A random integer between 217 and to 255, divided by 255.
+    random_number = random.randint(217, 255) / 255
+
+    #get the type effectiveness of the move against the defending pokemon
+    type_1_effectiveness, type_2_effectiveness = get_type_effectiveness(move, defending_pokemon)
+
+    # If the move has no effect on one of the types, it deals no damage
+    #This step is done before the damage calculation
+    if type_1_effectiveness == 0 or type_2_effectiveness == 0:
+        message = "It has no effect on the Pokémon."
+        return 0, message
+
+    #Get the attack and defense stats based on the move's damage class
+    attack, defense = get_damage_class(attacking_pokemon, move, defending_pokemon)
+
+    # calculate the initial damage
+    damage = ((2 * 100 / 5 + 2) * move["power"] * attack / defense / 50 + 2)
+
+    # Apply STAB if applicable
+    if stab == 1.5:
+        # STAB is recognized as an addition of the damage calculated thus far divided by 2, rounded down.
+        # It is then added to the damage calculated thus far.
+        stab_bonus = math.floor(damage / 2)
+        damage += stab_bonus
+
+    #Before using the random number if the calculated damage thus far is 1, random is always 1.
+    if damage >= 1:
+        random_number = 1
+
+    damage = damage * type_1_effectiveness * type_2_effectiveness * random_number
+
+    #Apply Type effectiveness to the damage:
+    damage, message = apply_type_effectiveness(damage, type_1_effectiveness, type_2_effectiveness, defending_pokemon)
+
+    #Halve the damage to make the game more balanced
+    damage = damage / 2
+    #The damage is rounded down to the nearest 10
+    damage = int(math.floor(damage / 10.0) * 10)
+    #If the damage has exceeded the defending Pokémon's HP, it's a 1-hit KO.
+    if damage > defending_pokemon["stats"]["hp"]:
+        #If the damage is greater than the defending Pokémon's HP make it equal to the defending Pokémon's HP
+        damage = defending_pokemon["stats"]["hp"]
+        #And change the message to "It's a 1-hit KO!"
+        message = "It's a 1-hit KO!"
+    return damage, message
+
+def perform_attack(attacking_pokemon, defending_pokemon, move):
+    """Perform an attack on a Pokémon"""
+    # How much damage is done?
+    # The damage is calculated based on the move used and the defending Pokémon's stats and several other factors.
+    damage, message = calculate_damage(attacking_pokemon, move, defending_pokemon)
+    # How much HP is left?
+    # The HP of the defending Pokémon is decreased by the damage done by the attacking Pokémon
+    defending_pokemon["stats"]["hp"] -= damage
+    # What happens to the PP of the move used?
+    # decrease the pp of the moves used.
+    attacking_pokemon = decrease_pp(attacking_pokemon, move)
+    # Print the move
+    print_move(attacking_pokemon, move)
+    #The corresponding message is printed
+    print(message)
+    #The damage done and the HP left of the defending Pokémon is printed
+    print(f"{defending_pokemon['name']} took {damage} damage and has {defending_pokemon['stats']['hp']} HP left.")
+    #return the attacking and defending pokemon with their updated hp and decreased move pp
+    return attacking_pokemon, defending_pokemon
