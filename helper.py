@@ -1,15 +1,8 @@
 import math
-import os
 import random
 
-from openai import OpenAI
-from dotenv import load_dotenv
-
+from api_call import get_pokedex_info
 from type_chart import type_effectiveness_chart
-
-load_dotenv()
-# Get the API key from the .env file
-API_KEY = os.getenv("API_KEY")
 
 def give_nickname(pokemon, nickname):
     """Give a Pokémon a nickname"""
@@ -43,33 +36,12 @@ def choose_move(pokemon):
     move = switcher.get(move, random.choice(pokemon["moves"]))
     return move
 
-def print_move(pokemon, move):
-    """Print the move used by the Pokémon"""
-    print(f"\n{pokemon['name']} used: {move['name']}")
-
-
 def decrease_pp(pokemon, move):
     """Decrease the PP of the move used by the Pokémon"""
     for i in range(len(pokemon["moves"])):
         if move["name"] == pokemon["moves"][i]["name"]:
             pokemon["moves"][i]["current_pp"] -= 1
     return pokemon
-
-def generate_pokedex_info(pokemon_name):
-    """Generate a string with information about a Pokémon"""
-    client = OpenAI(api_key=API_KEY)
-
-    completion = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "Return only the pokedex entry"},
-            {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + "and if the Pokémon has a regional form, specify which form it is and if the pokemon has evolutions list the evolutions as well."},
-        ],
-    )
-    # Get the pokedex entry from the completion and replace the period with a period and a newline for better formatting.
-    pokedex_entry = completion.choices[0].message.content.replace(". ", ".\n")
-
-    return pokedex_entry
 
 def get_pokedex():
     """Get the user's Pokédex (text file)"""
@@ -121,7 +93,7 @@ def display_pokemon_info(pokemon):
     if pokemon:
         print(f"\nName: {pokemon['name']}")
         print(f"Type(s): {', '.join(pokemon['types']).capitalize()}\n")
-        print(generate_pokedex_info(pokemon["name"]))
+        print(get_pokedex_info(pokemon["name"]))
 
         print("\nBase Stats:")
         for stat_name, stat_value in pokemon["stats"].items():
@@ -142,14 +114,13 @@ def get_stab(pokemon, move):
 
 def get_type_effectiveness(move, defending_pokemon):
     """Get the effectiveness of the move against the defending Pokémon"""
-    # 2 is super effective, 0.5 is not very effective, 0 is no effect
-    # default to 1 (neutral damage) if the type is not in the specific type dictionary
+    # 2 is super effective, 0.5 is not very effective, 1 is neutral damage & 0 is no effect.
     type_1_effectiveness = type_effectiveness_chart[move["type"]].get(defending_pokemon["types"][0], 1)
-    # if the defending Pokémon has two types, get the effectiveness of the move against the second type
+    # if the defending Pokémon has two types, get the effectiveness of the move against the second type.
     if len(defending_pokemon["types"]) > 1:
         type_2_effectiveness = type_effectiveness_chart[move["type"]].get(defending_pokemon["types"][1], 1)
     else:
-        # If the Pokémon has no second type, set the type_2_effectiveness to 1
+        # If the Pokémon has no second type, set the type_2_effectiveness to 1.
         type_2_effectiveness = 1
 
     return type_1_effectiveness, type_2_effectiveness
@@ -157,7 +128,7 @@ def get_type_effectiveness(move, defending_pokemon):
 
 def get_damage_class(attacking_pokemon, move, defending_pokemon):
     """Get the damage class of the move"""
-    # initialize attack and defence based on the move's damage class
+    # initialize attack and defence based on the move's damage class.
     defense = defending_pokemon["stats"]["defense"]
     if move["damage_class"] == "special":
         defense = defending_pokemon["stats"]["special-defense"]
@@ -175,15 +146,15 @@ def apply_type_effectiveness(total_damage, type_1_effectiveness, type_2_effectiv
     """Apply the type effectiveness to the damage and create a message based on the effectiveness"""
     # If the Pokémon has only one type.
     if len(defending_pokemon["types"]) == 1:
-        # If the type of a move is super effective against a type of its target, the damage is doubled;
+        # If the type of a move is super effective against a type of its target, the damage is doubled as in the case of a Fire-type move used against a Grass Pokémon.
         if type_1_effectiveness == 2:
             total_damage = math.floor(total_damage * 2)
             message = "It's super effective!"
-        # If the type of a move is not very effective against a type of its target, the damage is halved;
+        # If the type of a move is not very effective against a type of its target, the damage is halved as in the case of a Water-type move used against a Grass Pokémon.
         elif type_1_effectiveness == 0.5:
             total_damage = math.floor(total_damage / 2)
             message = "It's not very effective!"
-        # If the type of a move has no effect against a type of its target, the move has no effect;
+        # If the type of a move has no effect against a type of its target, the move has no effect on the target Pokémon as in the case of a Ground-type move used against a Flying Pokémon.
         elif type_1_effectiveness == 0:
             total_damage = 0
             message = "It has no effect on the Pokémon."
@@ -225,7 +196,7 @@ def calculate_damage(attacking_pokemon, move, defending_pokemon):
     # Attack = the attacking pokemon's attack (physical or special) stat
     # Defence = the defending pokemon's defence (physical or special) stat
     # Damage = (((2 * 100 / 5 + 2) * move_power * Attack (physical or special) / Defence(physical or special) / 50 + 2)
-    #Apply STAB if applicable to the damage at this point
+    #Apply STAB if applicable to the damage at this point (damage += stab_bonus)
     #damage = damage * type_1_effectiveness * type_2_effectiveness
     #Apply Type effectiveness to the damage based on the defending pokemon's type(s)
     #Halve the damage to make the game more balanced
@@ -272,12 +243,12 @@ def calculate_damage(attacking_pokemon, move, defending_pokemon):
     damage = damage / 2
     #The damage is rounded down to the nearest 10
     damage = int(math.floor(damage / 10.0) * 10)
-    #If the damage has exceeded the defending Pokémon's HP, it's a 1-hit KO.
+    #If the damage has exceeded the defending Pokémon's HP, make it equal to the defending Pokémon's HP
     if damage > defending_pokemon["stats"]["hp"]:
         #If the damage is greater than the defending Pokémon's HP make it equal to the defending Pokémon's HP
         damage = defending_pokemon["stats"]["hp"]
-        #And change the message to "It's a 1-hit KO!"
-        message = "It's a 1-hit KO!"
+    if damage == 0:
+        message = "The move missed!"
     return damage, message
 
 def perform_attack(attacking_pokemon, defending_pokemon, move):
@@ -292,7 +263,7 @@ def perform_attack(attacking_pokemon, defending_pokemon, move):
     # decrease the pp of the moves used.
     attacking_pokemon = decrease_pp(attacking_pokemon, move)
     # Print the move
-    print_move(attacking_pokemon, move)
+    print(f"\n{attacking_pokemon['name']} used: {move['name']}")
     #The corresponding message is printed
     print(message)
     #The damage done and the HP left of the defending Pokémon is printed

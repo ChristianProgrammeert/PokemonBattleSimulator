@@ -1,7 +1,14 @@
 from types import NoneType
 
 import requests
+import os
 import random
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+# Get the API key from the .env file
+API_KEY = os.getenv("API_KEY")
 
 def get_pokemon_info(pokemon_name, all_moves=False):
     """Get information about a Pokémon from the PokéAPI."""
@@ -61,4 +68,23 @@ def get_damaging_moves(move_name):
             }
             return [move_info]
     return []
+
+def get_pokedex_info(pokemon_name):
+    """Generate a string with information about a Pokémon"""
+    client = OpenAI(api_key=API_KEY)
+
+    #Get a 3 sentence pokedex entry of a Pokémon from the GPT-4o model
+    #The model will generate a pokedex entry based on the given Pokémon name
+    #It also gives al of its evolutions and regional forms
+    completion = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "Return only the pokedex entry"},
+            {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + "and if the Pokémon has a regional form, specify which form it is and if the pokemon has evolutions list the evolutions as well."},
+        ],
+    )
+    # Get the pokedex entry from the completion and replace the period with a period and a newline for better formatting.
+    pokedex_entry = completion.choices[0].message.content.replace(". ", ".\n")
+
+    return pokedex_entry
 

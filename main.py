@@ -1,9 +1,10 @@
 import random
 
-from pokemon_data import get_pokemon_info
-from helper import print_move, decrease_pp, give_nickname, choose_move, calculate_damage, shiny_chance, add_to_pokedex, \
+from api_call import get_pokemon_info
+from helper import give_nickname, choose_move, shiny_chance, add_to_pokedex, \
     display_pokemon_info, check_pokedex, perform_attack
 from type_chart import type_effectiveness_chart
+
 
 def main():
     print("Welcome to the Pokémon Battle Simulator!")
