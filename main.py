@@ -1,4 +1,5 @@
 import random
+from types import NoneType
 
 from api_call import get_pokemon_info
 from helper import give_nickname, choose_move, shiny_chance, add_to_pokedex, \
@@ -38,7 +39,7 @@ def main():
                 pokemon.append(get_pokemon_info(name))
                 shiny_chance(pokemon[i])
                 if pokemon[i] is None:
-                    print(f"Could not find {name}")
+                    print(f"Could not find {name}, please try again\n")
                     break
                 #If the index is 0 and the length of the nicknames list is 1, give the nickname to the first Pokémon
                 if i == 0 and len(nicknames) == 1:
@@ -48,11 +49,15 @@ def main():
                     #give all Pokémon a nickname
                     pokemon[i] = give_nickname(pokemon[i], nicknames[i])
 
+            #If the first or second Pokémon is None, the battle cannot start
+            if pokemon[0] is None or pokemon[1] is None:
+                continue
+
             # The battle is active while 1 of the 2 Pokémon has not fainted yet (hp > 0)
             #The pokemon battle is not created dynamically, it is hardcoded to be 2 players
             print(f"{pokemon[0]['name']} {pokemon[0]['gender']} vs. {pokemon[1]['name']} {pokemon[1]['gender']}")
             print("Let the battle begin!")
-            while (pokemon[0]["stats"]["hp"] > 0) and (pokemon[1]["stats"]["hp"] > 0):
+            while (pokemon[0]["stats"]["hp"] > 0) or (pokemon[1]["stats"]["hp"] > 0):
                 print(
                     f"\n{pokemon[0]["name"]} {pokemon[0]['gender']} current HP: {pokemon[0]["stats"]["hp"]} & {pokemon[1]["name"]} {pokemon[1]['gender']} current HP: {pokemon[1]["stats"]["hp"]}")
                 # Choose a move for each Pokémon

@@ -18,7 +18,7 @@ def shiny_chance(pokemon):
 
 def choose_move(pokemon):
     """Choose a move for the Pokémon"""
-    print(f"{pokemon['name']} {pokemon['gender']} moves: ")
+    print(f"\n{pokemon['name']} {pokemon['gender']} moves: ")
     for i in range(len(pokemon["moves"])):
         print(
             f"|{i + 1}. {pokemon['moves'][i]['name']}/{pokemon['moves'][i]['damage_class']} {pokemon['moves'][i]['type']} type move [{pokemon['moves'][i]['power']} damage] [{pokemon['moves'][i]['current_pp']}/{pokemon['moves'][i]['max_pp']} pp]| ")
