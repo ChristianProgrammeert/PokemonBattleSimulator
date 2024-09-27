@@ -64,8 +64,8 @@ def get_pokedex():
 def add_to_pokedex(pokemon):
     """Add a Pokémon to the user's Pokédex (text file)"""
     pokedex = get_pokedex()
-    #Check if the pokemon is already in the pokedex
-    #if this is not the case create a pokedex file if this has not been created yet and add the pokemon
+    #Check if the Pokémon is already in the Pokédex
+    #if this is not the case create a Pokédex file if this has not been created yet and add the Pokémon
     if pokemon['name'] in pokedex:
         print(f"{pokemon['name']} is already in your pokedex")
     else:
@@ -268,5 +268,5 @@ def perform_attack(attacking_pokemon, defending_pokemon, move):
     print(message)
     #The damage done and the HP left of the defending Pokémon is printed
     print(f"{defending_pokemon['name']} took {damage} damage and has {defending_pokemon['stats']['hp']} HP left.")
-    #return the attacking and defending pokemon with their updated hp and decreased move pp
+    #return the attacking and defending Pokémon with their updated hp and decreased move pp
     return attacking_pokemon, defending_pokemon

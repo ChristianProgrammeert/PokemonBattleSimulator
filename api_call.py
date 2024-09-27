@@ -16,6 +16,7 @@ def get_pokemon_info(pokemon_name, all_moves=False):
     url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower().replace(' ', '-')}"
     response = requests.get(url)
 
+    #if the response is successful, get the data from the response and return it
     if response.status_code == 200:
         pokemon_data = response.json()
         moves = []
@@ -51,6 +52,7 @@ def get_pokemon_info(pokemon_name, all_moves=False):
 
 def get_damaging_moves(move_name):
     """Get information about a move from the PokéAPI."""
+    #Make a request to the PokéAPI & set all capital letters to lowercase.
     url = f"https://pokeapi.co/api/v2/move/{move_name.lower()}"
     response = requests.get(url)
     if response.status_code == 200:
@@ -73,8 +75,8 @@ def get_pokedex_info(pokemon_name):
     """Generate a string with information about a Pokémon"""
     client = OpenAI(api_key=API_KEY)
 
-    #Get a 3 sentence pokedex entry of a Pokémon from the GPT-4o model
-    #The model will generate a pokedex entry based on the given Pokémon name
+    #Get a 3 sentence Pokédex entry of a Pokémon from the GPT-4o model
+    #The model will generate a Pokédex entry based on the given Pokémon name
     #It also gives al of its evolutions and regional forms
     completion = client.chat.completions.create(
         model="gpt-4o",
@@ -83,7 +85,7 @@ def get_pokedex_info(pokemon_name):
             {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + "and if the Pokémon has a regional form, specify which form it is and if the pokemon has evolutions list the evolutions as well."},
         ],
     )
-    # Get the pokedex entry from the completion and replace the period with a period and a newline for better formatting.
+    # Get the Pokédex entry from the completion and replace the period with a period and a newline for better formatting.
     pokedex_entry = completion.choices[0].message.content.replace(". ", ".\n")
 
     return pokedex_entry
