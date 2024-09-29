@@ -13,6 +13,7 @@ def main():
         choice = input(
             "Do you want to: \n1. Start a Pokémon battle \n2. Add Pokémon to your Pokédex \n3. Check Type Effectiveness \n4. Exit\nChoice-number: ")
         if choice == "1":
+            #Pokémon battle
             multiplayer = False
             pokemon = []
             nicknames = []
@@ -57,7 +58,7 @@ def main():
             #The pokemon battle is not created dynamically, it is hardcoded to be 2 players
             print(f"{pokemon[0]['name']} {pokemon[0]['gender']} vs. {pokemon[1]['name']} {pokemon[1]['gender']}")
             print("Let the battle begin!")
-            while (pokemon[0]["stats"]["hp"] > 0) or (pokemon[1]["stats"]["hp"] > 0):
+            while (pokemon[0]["stats"]["hp"] > 0) and (pokemon[1]["stats"]["hp"] > 0):
                 print(
                     f"\n{pokemon[0]["name"]} {pokemon[0]['gender']} current HP: {pokemon[0]["stats"]["hp"]} & {pokemon[1]["name"]} {pokemon[1]['gender']} current HP: {pokemon[1]["stats"]["hp"]}")
                 # Choose a move for each Pokémon
@@ -78,23 +79,20 @@ def main():
                     # Check if the second Pokémon can still attack
                     if pokemon[1]["stats"]["hp"] > 0:
                         pokemon[1], pokemon[0] = perform_attack(pokemon[1], pokemon[0], move_b)
-                    else:
-                        #If the second Pokémon has fainted, the battle is over and the first Pokémon wins
-                        print(f"{pokemon[1]["name"]} has fainted! {pokemon[0]["name"]} wins!\n")
-                        break
                 else:
                     #The second pokémon is faster so it performs a move first
                     pokemon[1], pokemon[0] = perform_attack(pokemon[1], pokemon[0], move_b)
                     # Check if the first Pokémon can still attack
                     if pokemon[0]["stats"]["hp"] > 0:
                         pokemon[0], pokemon[1] = perform_attack(pokemon[0], pokemon[1], move_a)
-                    else:
-                        #If the first Pokémon has fainted, the battle is over and the second Pokémon wins
-                        print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!\n")
-                        break
+            #End of the battle, create a winner message
+            if pokemon[0]["stats"]["hp"] == 0:
+                print(f"{pokemon[0]["name"]} has fainted! {pokemon[1]["name"]} wins!\n")
+            elif pokemon[1]["stats"]["hp"] == 0:
+                print(f"{pokemon[1]["name"]} has fainted! {pokemon[0]["name"]} wins!\n")
 
         elif choice == "2":
-            #Pokedex
+            #Pokédex
             pokemon_name = input(
                 "Welcome to the pokédex where you can see types, moves, stats & evolutions of every Pokémon. "
                 "\nAfter which you can add the Pokémon to your Pokédex to use in battle! "
@@ -108,7 +106,7 @@ def main():
                 else:
                     print(f"{pokemon['name']} is not added to your pokedex")
             else:
-                print(f"Could not find information about {pokemon_name}")
+                print(f"Could not find information about {pokemon_name}\n")
 
         elif choice == "3":
             #Pokémon type effectiveness checker

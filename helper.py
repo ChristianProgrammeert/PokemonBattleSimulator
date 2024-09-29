@@ -67,7 +67,7 @@ def add_to_pokedex(pokemon):
     #Check if the Pokémon is already in the Pokédex
     #if this is not the case create a Pokédex file if this has not been created yet and add the Pokémon
     if pokemon['name'] in pokedex:
-        print(f"{pokemon['name']} is already in your pokedex")
+        print(f"{pokemon['name']} is already in your pokedex\n")
     else:
         try:
             with open("pokedex.txt", "a") as file:
