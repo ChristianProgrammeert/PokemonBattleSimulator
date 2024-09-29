@@ -82,7 +82,7 @@ def get_pokedex_info(pokemon_name):
         model="gpt-4o",
         messages=[
             {"role": "system", "content": "Return only the pokedex entry"},
-            {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + "and if the Pokémon has a regional form, specify which form it is and if the pokemon has evolutions list the evolutions as well."},
+            {"role": "user", "content": "Create a 3 sentence pokedex entry for " + pokemon_name + " and if the pokemon has evolutions list the evolutions, and if the pokémon has regional forms list these as well."},
         ],
     )
     # Get the Pokédex entry from the completion and replace the period with a period and a newline for better formatting.
